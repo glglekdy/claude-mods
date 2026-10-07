@@ -18,8 +18,8 @@ const usage = (n: number) => ({
   input_tokens: n, output_tokens: n, cache_read_input_tokens: n, cache_creation_input_tokens: n,
 })
 
-const turn = (turnId: string, n: number, agentId?: string) => ({
-  reason: 'answer' as const, answer: 'done', durationMs: 10, isAborted: false, turnId,
+const turn = (turnId: string, n: number, agentId?: string, durationMs = 10) => ({
+  reason: 'answer' as const, answer: 'done', durationMs, isAborted: false, turnId,
   usage: usage(n), ...(agentId ? { agentId } : {}),
 })
 
@@ -46,6 +46,7 @@ const engine = (on: On) => {
   }) as never)
   on('settings.read', () => ({ value: world.settings }))
   on('turn.complete', ($, e) => ({ text: e.answer, usage: e.usage }))
+  on('skill.prompt', ($, e) => ({ text: e.text }))
   on('classic.PostModelSwitch', () => ({}) as never)
   on('classic.ConfigChange', () => ({}) as never)
   // 엔진이 원래 그리는 줄 대신
@@ -59,15 +60,17 @@ const engine = (on: On) => {
 test('입력창 위 한 줄에 색으로 구분된 통계가 나오고, 아래 줄도 함께 그린다', async ($, on) => {
   engine(on)
   await $.turn.complete(turn('t1', 10_000))
-  await $.turn.complete(turn('t2', 1_000))
-  await $.turn.complete(turn('sub', 50_000, 'agent-1'))
+  await $.turn.complete(turn('t2', 1_000, undefined, 83_000))
+  await $.turn.complete(turn('sub', 50_000, 'agent-1', 999_000))
+  await $.skill.prompt({ skill: 'commit', text: 'x' })
+  await $.skill.prompt({ skill: 'review', text: 'y' })
 
   for (const surface of ['terminal', 'desktop'] as const) {
     const ui = await $.ui.mount({ plugin: 'total-stats', surface, ...BAND })
     const line = await ui.find({ type: 'Text', text: /Opus 5\.5/ })
 
     expect(line?.props.wrap).toBe('truncate-end')
-    expect(line?.text).toBe('🧠 Opus 5.5 · medium · ⚡fast · ctx ███████░░░ 68% · 5h 85% · 직전 4.0k · 세션 244.0k')
+    expect(line?.text).toBe('🧠 Opus 5.5 · medium · ⚡fast · ctx ███████░░░ 68% · 5h 85% · 직전 4.0k ⏱1m23s · 세션 2턴 244.0k · 스킬 2')
 
     const pieces = spans(line)
     expect(pieces['🧠 Opus 5.5']).toBe('claude')
@@ -76,6 +79,7 @@ test('입력창 위 한 줄에 색으로 구분된 통계가 나오고, 아래 �
     expect(pieces['███████']).toBe('success')
     expect(pieces[' 68%']).toBe('success')
     expect(pieces['85%']).toBe('error')
+    expect(pieces[' ⏱1m23s']).toBe('suggestion')
 
     expect(await ui.find({ type: 'Text', text: 'engine' })).toBeDefined()
     await ui.unmount()

@@ -9,6 +9,10 @@ type Tokens = {
   last: number
   total: number
   usd: number
+  // 아래 셋은 나중에 더해서, 예전에 저장된 값에는 없을 수 있습니다.
+  lastMs?: number
+  turns?: number
+  skills?: number
 }
 
 type Live = {
@@ -31,6 +35,15 @@ const compact = (n: number) =>
 
 const turnTokens = (u: ModelUsage) =>
   u.input_tokens + u.cache_read_input_tokens + u.cache_creation_input_tokens + u.output_tokens
+
+// 83000 → 1m23s
+const duration = (ms: number) => {
+  const sec = Math.round(ms / 1000)
+  if (sec < 60) return `${sec}s`
+  const min = Math.floor(sec / 60)
+  if (min < 60) return `${min}m${String(sec % 60).padStart(2, '0')}s`
+  return `${Math.floor(min / 60)}h${String(min % 60).padStart(2, '0')}m`
+}
 
 // claude-opus-5-5 → Opus 5.5
 const modelName = (id: string) => {
@@ -110,6 +123,9 @@ async function publish($: EngineInterface) {
     last: tokens.last,
     total: tokens.total,
     usd: tokens.usd,
+    lastMs: tokens.lastMs,
+    turns: tokens.turns ?? 0,
+    skills: tokens.skills ?? 0,
   }
   await update($, snapshot, () => next)
 }
@@ -165,8 +181,23 @@ export const register: Register = on => {
         if (e.agentId === undefined) t.last = n
         t.total += n
       })
-      await publish($)
     }
+    // 턴 수와 걸린 시간은 메인 대화만 셉니다.
+    if (e.agentId === undefined) {
+      await save($, t => {
+        t.turns = (t.turns ?? 0) + 1
+        t.lastMs = e.durationMs
+      })
+    }
+    if (usage || e.agentId === undefined) await publish($)
+    return ran
+  })
+
+  // /이름으로 부르든 Skill 도구로 부르든 스킬이 펼쳐질 때마다 셉니다.
+  on('skill.prompt', async ($, e, next) => {
+    const ran = await next(e)
+    await save($, t => { t.skills = (t.skills ?? 0) + 1 })
+    await publish($)
     return ran
   })
 
@@ -219,10 +250,15 @@ export const register: Register = on => {
           {sep}
           <Text dimColor>직전 </Text>
           <Text bold>{compact(s.last)}</Text>
+          {s.lastMs !== undefined ? <Text color="suggestion"> ⏱{duration(s.lastMs)}</Text> : null}
           {sep}
           <Text dimColor>세션 </Text>
+          <Text bold>{s.turns}턴 </Text>
           <Text bold>{compact(s.total)}</Text>
           {s.usd > 0 ? <Text color="success"> ${s.usd.toFixed(2)}</Text> : null}
+          {sep}
+          <Text dimColor>스킬 </Text>
+          <Text bold>{s.skills}</Text>
         </Text>
         {below}
       </Box>

@@ -7,6 +7,9 @@ export type Snapshot = {
   last: number
   total: number
   usd: number
+  lastMs?: number
+  turns: number
+  skills: number
 }
 
 declare module 'claude-code' {

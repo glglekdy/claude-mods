@@ -1,7 +1,7 @@
 {
   "name": "total-stats",
-  "version": "0.3.0",
-  "description": "입력창 위에 모델·effort·fast 모드, 남은 컨텍스트 게이지, 직전 대화와 세션 전체 토큰을 색으로 구분해 한눈에 보여줍니다",
+  "version": "0.4.0",
+  "description": "입력창 위에 모델·effort·fast 모드, 남은 컨텍스트 게이지, 직전 대화의 토큰과 걸린 시간, 세션 전체 턴·토큰·스킬 사용 횟수를 색으로 구분해 한눈에 보여줍니다",
   "author": { "name": "glglekdy" },
   "types": "./types/index.d.ts"
 }
