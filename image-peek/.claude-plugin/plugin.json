@@ -1,0 +1,7 @@
+{
+  "name": "image-peek",
+  "version": "0.2.0",
+  "description": "입력창에 붙여 넣은 이미지를 보내기 전에 입력창 위 목록으로 보여주고, 누르면 사진 뷰어로 크게 엽니다",
+  "author": { "name": "glglekdy" },
+  "types": "./types/index.d.ts"
+}

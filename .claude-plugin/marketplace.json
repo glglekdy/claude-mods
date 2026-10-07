@@ -1,0 +1,9 @@
+{
+  "name": "glglekdy-mods",
+  "description": "상태 줄과 이미지 첨부 목록을 더해 주는 Claude Code 모드",
+  "owner": { "name": "glglekdy" },
+  "plugins": [
+    { "name": "total-stats", "source": "./total-stats" },
+    { "name": "image-peek", "source": "./image-peek" }
+  ]
+}
